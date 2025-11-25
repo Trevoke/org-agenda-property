@@ -126,8 +126,9 @@ Uses `org-agenda-locations-column'."
   (goto-char (point-min))
   (while (not (eobp))
     (forward-line 1)
-    ;; Only do anything if this is a line with an item
-    (when (org-get-at-bol 'org-marker)
+    ;; Only process lines with org-marker that are NOT property-display lines
+    (when (and (org-get-at-bol 'org-marker)
+               (not (org-get-at-bol 'org-agenda-property-line)))
       ;; Move past the file name.
       (search-forward-regexp " +" (line-end-position) t 2)
       ;; Move to the title.
@@ -139,7 +140,7 @@ Uses `org-agenda-locations-column'."
       (let* ((this-marker (org-get-at-bol 'org-marker))
              (loc (org-agenda-property-create-string this-marker))
              (col (+ (current-column) (if (looking-at "Scheduled:") 11 -1)))
-             (prop (text-properties-at (point)))
+             (prop (org-agenda-property--prepare-props (text-properties-at (point)) this-marker))
              indentedLocation)
         ;; If this item doesn't containi any of the properties, loc will be nil.
         (when loc
@@ -157,6 +158,19 @@ Uses `org-agenda-locations-column'."
             (set-text-properties 0 (length loc) prop loc)
             (add-text-properties 0 (length loc) '(face font-lock-comment-face) loc)
             (insert loc)))))))
+
+(defun org-agenda-property--prepare-props (props marker)
+  "Prepare PROPS for property display lines, adding MARKER for interactivity.
+
+Adds:
+- `org-marker' MARKER so org-agenda commands work on property lines
+- `org-agenda-property-line' so the processing loop skips these lines
+
+This allows users to interact with agenda items even when their cursor
+is on the property display line below the main item.
+
+See: https://github.com/Malabarba/org-agenda-property/issues/6"
+  (append props (list 'org-marker marker 'org-agenda-property-line t)))
 
 (defun org-agenda-property-create-string (marker)
   "Creates a string of properties to be inserted in the agenda buffer."
