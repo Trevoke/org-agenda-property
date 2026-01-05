@@ -71,6 +71,11 @@
 
 (require 'org-agenda)
 
+(defun org-agenda-property--extract-link-description (text)
+  "Replace all `org-mode' links in TEXT with their descriptions.
+For example, [[ebdb:uuid][John Doe]] becomes John Doe."
+  (replace-regexp-in-string org-link-bracket-re "\\2" text))
+
 (defconst org-agenda-property-version "1.3.2"
   "Version string of the `org-agenda-property' package.")
 (defconst org-agenda-property-version-int 6
@@ -165,6 +170,7 @@ Uses `org-agenda-locations-column'."
     (dolist (cur org-agenda-property-list)
       (let ((prop (org-entry-get marker cur 'selective)))
         (when prop
+          (setq prop (org-agenda-property--extract-link-description prop))
           (setq out (if first (concat out prop)
                       (concat out org-agenda-property-separator prop)))
           (setq first nil))))
